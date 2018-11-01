@@ -92,15 +92,20 @@ class Window(QtGui.QDialog):
 			event.ignore()
 
 	def dropEvent(self, event):
+
 		if len(event.mimeData().urls()) != 1:
 			return
 		url = unicode(event.mimeData().urls()[0].toLocalFile()) 
 		print(url)
 
 		if os.path.isdir(url):
+			self.folder = os.path.dirname(url)
 			for filename in os.listdir(url):
 				self.listFile.addItem(filename)
-
+		else:
+			self.folder = os.path.dirname(url)
+			filename = os.path.basename(url)
+			self.listFile.addItem(filename)
 
 		# strFile, strExtension = os.path.splitext(self.file)
 
