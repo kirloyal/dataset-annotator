@@ -9,7 +9,7 @@ import matplotlib.patches as patches
 import numpy as np
 
 from PyQt4 import QtGui
-from PyQt4.QtCore import QTimer, QEvent, Qt
+from PyQt4.QtCore import QTimer, QEvent, Qt, QDir
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
@@ -33,7 +33,7 @@ class Window(QtGui.QDialog):
 
 		self.lsPoint = []
 		self.lsName = []
-
+		self.folder = None
 
 	def evCheckBox(self, cb):	
 		if cb == self.cbAutoCorrection:
@@ -106,6 +106,8 @@ class Window(QtGui.QDialog):
 			self.folder = os.path.dirname(url)
 			filename = os.path.basename(url)
 			self.listFile.addItem(filename)
+
+
 
 		# strFile, strExtension = os.path.splitext(self.file)
 
@@ -301,6 +303,15 @@ class Window(QtGui.QDialog):
 		self.edt.appendPlainText(str((x,y)))
 		return x,y
 
+
+	def openFiles(self):
+		dlg = QtGui.QFileDialog()
+		dlg.setFileMode(QtGui.QFileDialog.DirectoryOnly)
+		
+		if dlg.exec_():
+			lsUrl = dlg.selectedFiles()
+			self.tbSaveFolder.setPlainText(lsUrl[0])
+
 	def initUI(self):
 		self.figure = Figure()
 		self.canvas = FigureCanvas(self.figure)
@@ -384,12 +395,22 @@ class Window(QtGui.QDialog):
 		# self.btnTest.setFixedWidth(100)
 		# self.btnTest.clicked.connect(self.test)
 
+		self.lbSaveFolder = QtGui.QLabel("Save Folder :")
+		self.lbSaveFolder.setFixedWidth(100)
+		self.btnSaveFolder = QtGui.QPushButton('Search')
+		self.btnSaveFolder.setFixedWidth(100)
+		self.btnSaveFolder.clicked.connect(self.openFiles)
+		self.tbSaveFolder = QtGui.QPlainTextEdit()
+		self.tbSaveFolder.setFixedWidth(120)
+		self.tbSaveFolder.setFixedHeight(40)
+		self.tbSaveFolder.setReadOnly(True)
+
 		self.listFile = QtGui.QListWidget()
 		self.listFile.installEventFilter(self)
 		self.listFile.setFixedWidth(120)
 
 		layoutControl = QtGui.QGridLayout()
-		lsControl = [self.listFile]
+		lsControl = [self.btnSaveFolder, self.lbSaveFolder, self.tbSaveFolder, self.listFile]
 		# lsControl = [self.btnRawImg, self.cbGray, self.slGray, self.slHarris, self.cbHough,
 		# 			self.btnDrawLine, self.btnClearLines, self.slHough, self.cbNonMaxSup, 
 		# 			self.cbAutoCorrection, 
