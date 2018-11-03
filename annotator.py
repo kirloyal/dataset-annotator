@@ -33,7 +33,7 @@ class Window(QtGui.QDialog):
 
 		self.lsPoint = []
 		self.lsName = []
-		self.folder = None
+		self.folder = {}
 
 	def evCheckBox(self, cb):	
 		if cb == self.cbAutoCorrection:
@@ -96,16 +96,17 @@ class Window(QtGui.QDialog):
 		if len(event.mimeData().urls()) != 1:
 			return
 		url = unicode(event.mimeData().urls()[0].toLocalFile()) 
-		print(url)
-
 		if os.path.isdir(url):
-			self.folder = os.path.dirname(url)
+			folder =  os.path.dirname(url)
 			for filename in os.listdir(url):
-				self.listFile.addItem(filename)
+				if os.path.splitext(filename)[1] == '.jpg' or os.path.splitext(filename)[1] == '.png':
+					self.listFile.addItem(filename)
+					self.folder[filename] = folder
 		else:
-			self.folder = os.path.dirname(url)
-			filename = os.path.basename(url)
-			self.listFile.addItem(filename)
+			if os.path.splitext(filename)[1] == '.jpg' or os.path.splitext(filename)[1] == '.png':
+				filename = os.path.basename(url)
+				self.listFile.addItem(filename)
+				self.folder[filename] = os.path.dirname(url)
 
 
 
@@ -152,116 +153,6 @@ class Window(QtGui.QDialog):
 		self.canvas.draw()
 
 
-	def GetCornersHarris(self, gray):
-		ret = np.zeros(gray.shape)
-		gray = np.float32(gray)
-		dst = cv2.cornerHarris(gray,2,3,0.04)
-		dst = cv2.dilate(dst,None)
-		ret[dst>0.001*dst.max()] = 255.0
-		
-		return ret
-
-
-	def drawLine(self):
-		X1, X2 = self.getClickedBox()	
-
-		if self.cbHough.isChecked():
-			l = min(X1[0],X2[0])-2
-			r = max(X1[0],X2[0])+2
-			t = min(X1[1],X2[1])-2
-			b = max(X1[1],X2[1])+2
-
-			box = self.gray[ t:b, l:r ]
-			theta = -np.arctan2(X1[0]-X2[0], X1[1]-X2[1])
-			dist = np.sqrt((X1[0]-X2[0])**2 + (X1[1]-X2[1])**2)
-			self.imgHough[ t:b, l:r ] = self.imgHough[ t:b, l:r ] + self.GetLinesHough(box, dist = dist, theta_target=theta, theta_offset = 0.01)
-		else:
-			grayLine = np.zeros_like(self.imgHough)
-			cv2.line(grayLine,X1,X2,100.0, )
-			self.imgHough = self.imgHough + grayLine
-		
-		self.plotFusedImg()	
-
-	def clearLines(self):
-		self.imgHough = np.zeros_like(self.gray)
-		self.plotFusedImg()	
-
-	def getClickedBox(self):
-		self.ax.set_xlim(self.ax.get_xlim()) 
-		self.ax.set_ylim(self.ax.get_ylim()) 
-
-		self.edt.appendPlainText("Click 2 points")
-		# X = self.figure.ginput(2)[0]
-		X1, X2 = self.figure.ginput(2)
-		X1 = (int(round(X1[0])),int(round(X1[1])))
-		X2 = (int(round(X2[0])),int(round(X2[1])))
-		return X1, X2
-
-
-	def GetLinesHough(self, gray, theta_target = None, theta_offset = 0.1, dist = 70):
-		ret = np.zeros(gray.shape)
-		edges = cv2.Canny(gray, 130, 200, apertureSize=3)
-		# edges = cv2.Canny(gray, 30, 100, apertureSize=3)
-		# edges = cv2.Canny(gray, 30, 80, apertureSize=3)
-		dist = int(min(dist,70))
-		lines = cv2.HoughLines(edges,1,np.pi/720,int(dist))
-		
-		org = 0
-		if theta_target is None:
-			theta_range = (0, np.pi)
-		else:
-			if theta_target < 0:
-				theta_target += np.pi
-			theta_range = (theta_target - theta_offset, theta_target + theta_offset)
-			if theta_target < np.pi/2:
-				org = gray.shape[0]
-			
-		
-		
-		for line in lines:
-		    for rho,theta in line:
-		    	
-		    	if np.abs(rho - org) > 3:
-		    		continue
-		    	if theta < theta_range[0] or theta > theta_range[1]:
-		    		continue
-
-		    	grayLine = np.zeros(gray.shape)
-		        a = np.cos(theta)
-		        b = np.sin(theta)
-		        x0 = a*rho
-		        y0 = b*rho
-		        x1 = int(x0 + 3000*(-b))
-		        y1 = int(y0 + 3000*(a))
-		        x2 = int(x0 - 3000*(-b))
-		        y2 = int(y0 - 3000*(a))
-		        cv2.line(grayLine,(x1,y1),(x2,y2),1.0, )
-		        ret = ret + grayLine
-		# ret = ret/ret.max() * 255
-		ret = ret * 100
-		return ret
-
-
-	def GetNonMaxSup(self, gray):
-		ret = gray
-		gray = cv2.GaussianBlur(gray,(7,7),0)
-
-		lsShift = []
-		lsShift.append(np.pad(gray[:-1,:-1], ((1, 0), (1, 0)), 'constant'))
-		lsShift.append(np.pad(gray[:-1,:], ((1, 0), (0, 0)), 'constant'))
-		lsShift.append(np.pad(gray[:-1,1:], ((1, 0), (0, 1)), 'constant'))
-		lsShift.append(np.pad(gray[:,:-1], ((0, 0), (1, 0)), 'constant'))
-		lsShift.append(np.pad(gray[:,1:], ((0, 0), (0, 1)), 'constant'))
-		lsShift.append(np.pad(gray[1:,:-1], ((0, 1), (1, 0)), 'constant'))
-		lsShift.append(np.pad(gray[1:,:], ((0, 1), (0, 0)), 'constant'))
-		lsShift.append(np.pad(gray[1:,1:], ((0, 1), (0, 1)), 'constant'))
-		grayMax = np.array(lsShift).max(axis=0)
-
-		ret[np.where(gray <= grayMax)] = 0
-		ret[np.where(ret > 0)] = 255
-
-		return ret
-
 	def click(self):
 		x,y = self.getClickedPoint()
 		if self.cbAutoCorrection.isChecked():
@@ -288,8 +179,6 @@ class Window(QtGui.QDialog):
 		
 		# 	self.edt.appendPlainText(" ".join(str(x) for x in self.ls...))
 
-	def test(self):
-		self.getClickedBox()
 
 	def getClickedPoint(self):
 		self.ax.set_xlim(self.ax.get_xlim()) 
@@ -410,7 +299,7 @@ class Window(QtGui.QDialog):
 		self.listFile.setFixedWidth(120)
 
 		layoutControl = QtGui.QGridLayout()
-		lsControl = [self.btnSaveFolder, self.lbSaveFolder, self.tbSaveFolder, self.listFile]
+		lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, self.listFile]
 		# lsControl = [self.btnRawImg, self.cbGray, self.slGray, self.slHarris, self.cbHough,
 		# 			self.btnDrawLine, self.btnClearLines, self.slHough, self.cbNonMaxSup, 
 		# 			self.cbAutoCorrection, 
