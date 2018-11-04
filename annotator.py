@@ -85,6 +85,7 @@ class Window(QtGui.QDialog):
 		else:
 			return super(Window, self).eventFilter(obj, event)
 
+
 	def dragEnterEvent(self, event):
 		if event.mimeData().hasUrls():
 			event.accept()
@@ -97,7 +98,7 @@ class Window(QtGui.QDialog):
 			return
 		url = unicode(event.mimeData().urls()[0].toLocalFile()) 
 		if os.path.isdir(url):
-			folder =  os.path.dirname(url)
+			folder = os.path.dirname(url)
 			for filename in os.listdir(url):
 				if os.path.splitext(filename)[1] == '.jpg' or os.path.splitext(filename)[1] == '.png':
 					self.listFile.addItem(filename)
@@ -108,35 +109,18 @@ class Window(QtGui.QDialog):
 				self.listFile.addItem(filename)
 				self.folder[filename] = os.path.dirname(url)
 
+		self.plotFirstInList()
 
-
-		# strFile, strExtension = os.path.splitext(self.file)
-
-		# if strExtension.lower() == ".mp4":
-		# 	cap = cv2.VideoCapture(self.file)
-		# 	w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH ))
-		# 	h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT ))
-		# 	if cap.isOpened():
-		# 		ret, frame = cap.read()
-		# 		if ret == True:
-		# 			cv2.imwrite(strFile + ".jpg", frame)
-		# 			self.img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-		# elif strExtension.lower() == ".jpg":
-		# 	self.img = cv2.cvtColor(cv2.imread(self.file), cv2.COLOR_BGR2RGB)
-		# 	h, w, _ = self.img.shape
-		
-		# else:
-		# 	return
-		
-		# self.gray = cv2.cvtColor(self.img,cv2.COLOR_BGR2GRAY)
-		# self.imgHarris = self.GetCornersHarris(self.gray)
-		# self.imgHough = np.zeros_like(self.gray)
-		
-		# self.ax.clear()
-		# self.ax.imshow(self.img)
-		# self.ax.set_xlabel(file)
-		# self.canvas.draw()
+	def plotFirstInList(self):		
+		filename = str(self.listFile.item(0).text())
+		folder = self.folder[filename]
+		file = os.path.join(folder,filename)
+		self.img = cv2.cvtColor(cv2.imread(file), cv2.COLOR_BGR2RGB)
+		h, w, _ = self.img.shape
+		self.ax.clear()
+		self.ax.imshow(self.img)
+		self.ax.set_xlabel(file)
+		self.canvas.draw()
 
 	def generate(self):
 		strFile, _ = os.path.splitext(self.file)
