@@ -36,39 +36,11 @@ class Window(QtGui.QDialog):
 		self.folder = {}
 
 	def evCheckBox(self, cb):	
-		if cb == self.cbAutoCorrection:
-			return
-		self.plotFusedImg()
-	
+		pass
+
 	def evSlider(self, sl):
-		self.plotFusedImg()	
-
-
-	def plotFusedImg(self):
-		disp = np.zeros_like(self.gray)
-
-		disp = disp + float(self.slHarris.value())/10 * self.imgHarris
-		disp = disp + float(self.slHough.value())/10 * self.imgHough
-
-		if self.cbNonMaxSup.isChecked():
-			disp = self.GetNonMaxSup(disp)
-
-		self.detected = disp
-
-		if self.cbGray.isChecked():
-			disp = disp + float(self.slGray.value())/10 * self.gray
-
-
-		# disp = cv2.Canny(self.gray, 0, 200, apertureSize=3)
-		xlim = self.ax.get_xlim()
-		ylim = self.ax.get_ylim()
-		self.ax.clear()
-		self.ax.imshow(disp, cmap='gray', vmin = 0, vmax = 255)
-		self.ax.set_xlabel(self.file)
-		self.ax.set_xlim(xlim)
-		self.ax.set_ylim(ylim)
-		self.canvas.draw()
-
+		pass
+		
 
 	def eventFilter(self, obj, event):
 		if event.type() == QEvent.KeyPress and obj == self.listPoint:
@@ -110,6 +82,8 @@ class Window(QtGui.QDialog):
 				self.folder[filename] = os.path.dirname(url)
 
 		self.plotFirstInList()
+		while not self.click():
+			pass
 
 	def plotFirstInList(self):		
 		filename = str(self.listFile.item(0).text())
@@ -130,38 +104,20 @@ class Window(QtGui.QDialog):
 				file.write(n + " %d %d\n" % (p[0],p[1]))
 
 
-	def plotRawImg(self):
-		self.ax.clear()
-		self.ax.imshow(self.img)
-		self.ax.set_xlabel(file)
-		self.canvas.draw()
-
-
 	def click(self):
 		x,y = self.getClickedPoint()
-		if self.cbAutoCorrection.isChecked():
-			w = 10
-			y1 = max(y-w, 0)
-			y2 = min(y+w, self.detected.shape[0])
-			x1 = max(x-w, 0)
-			x2 = min(x+w, self.detected.shape[1])
-			fMax = np.max(self.detected[y1:y2, x1:x2])
-			indices = np.array(np.where(self.detected == fMax))
-			diff = indices - np.array([y,x])[:,None]
-			dist = diff[0]*diff[0] + diff[1]*diff[1]
-			idxMin = np.argmin(dist)
-			y, x = indices[:,idxMin]
-
+		
 		self.ax.plot(x,y,'g.')
 		self.canvas.draw()
 		
 		if QtGui.QMessageBox.question(self,'', "Is it the corner?", 
 			QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == QtGui.QMessageBox.Yes:
-			self.listPoint.addItem(self.tbName.text() + str((x,y)))
-			self.lsPoint.append((x,y))
-			self.lsName.append(self.tbName.text())
+			# (x,y)
+			# self.lsName.append(self.tbName.text())
+			return True
+		else:
+			return False
 		
-		# 	self.edt.appendPlainText(" ".join(str(x) for x in self.ls...))
 
 
 	def getClickedPoint(self):
@@ -177,7 +133,7 @@ class Window(QtGui.QDialog):
 		return x,y
 
 
-	def openFiles(self):
+	def setSaveFolder(self):
 		dlg = QtGui.QFileDialog()
 		dlg.setFileMode(QtGui.QFileDialog.DirectoryOnly)
 		
@@ -190,18 +146,10 @@ class Window(QtGui.QDialog):
 		self.canvas = FigureCanvas(self.figure)
 		self.toolbar = NavigationToolbar(self.canvas, self)
 
-		# self.btnRawImg = QtGui.QPushButton('Raw Image')
-		# self.btnRawImg.setFixedWidth(100)
-		# self.btnRawImg.clicked.connect(self.plotRawImg)
-
-		# self.listPoint = QtGui.QListWidget()
-		# self.listPoint.installEventFilter(self)
-		# self.listPoint.setFixedWidth(120)
-
-		# self.edt = QtGui.QPlainTextEdit()
-		# self.edt.setDisabled(True)
-		# self.edt.setMaximumBlockCount(10)
-		# self.edt.setFixedWidth(120)
+		self.edt = QtGui.QPlainTextEdit()
+		self.edt.setDisabled(True)
+		self.edt.setMaximumBlockCount(10)
+		self.edt.setFixedWidth(120)
 		
 		# self.cbGray = QtGui.QCheckBox("Gray")
 		# self.cbGray.stateChanged.connect(lambda:self.evCheckBox(self.cbGray))
@@ -216,25 +164,8 @@ class Window(QtGui.QDialog):
 		# self.slGray.setFixedWidth(80)
 		# self.slGray.valueChanged.connect(lambda:self.evSlider(self.slGray))
 
-		# self.slHarris = QtGui.QSlider(Qt.Horizontal)
-		# self.slHarris.setMinimum(0)
-		# self.slHarris.setMaximum(10)
-		# self.slHarris.setValue(0)
-		# self.slHarris.setTickPosition(QtGui.QSlider.TicksBelow)
-		# self.slHarris.setTickInterval(1)
-		# self.slHarris.setFixedWidth(80)
-		# self.slHarris.valueChanged.connect(lambda:self.evSlider(self.slHarris))
 
 		# self.cbHough = QtGui.QCheckBox("Use Hough")
-
-		# self.btnDrawLine = QtGui.QPushButton('Draw Line')
-		# self.btnDrawLine.setFixedWidth(100)
-		# self.btnDrawLine.clicked.connect(self.drawLine)
-
-		# self.btnClearLines = QtGui.QPushButton('Clear Lines')
-		# self.btnClearLines.setFixedWidth(100)
-		# self.btnClearLines.clicked.connect(self.clearLines)
-
 
 		# self.slHough = QtGui.QSlider(Qt.Horizontal)
 		# self.slHough.setMinimum(0)
@@ -259,10 +190,6 @@ class Window(QtGui.QDialog):
 		# self.btnGenerate.setFixedWidth(100)
 		# self.btnGenerate.clicked.connect(self.generate)
 
-		# self.lbName = QtGui.QLabel("Name :")
-		# self.lbName.setFixedWidth(100)
-		# self.tbName = QtGui.QLineEdit("")
-		# self.tbName.setFixedWidth(100)
 		
 		# self.btnTest = QtGui.QPushButton('Test')
 		# self.btnTest.setFixedWidth(100)
@@ -272,22 +199,25 @@ class Window(QtGui.QDialog):
 		self.lbSaveFolder.setFixedWidth(100)
 		self.btnSaveFolder = QtGui.QPushButton('Search')
 		self.btnSaveFolder.setFixedWidth(100)
-		self.btnSaveFolder.clicked.connect(self.openFiles)
+		self.btnSaveFolder.clicked.connect(self.setSaveFolder)
 		self.tbSaveFolder = QtGui.QPlainTextEdit()
 		self.tbSaveFolder.setFixedWidth(120)
 		self.tbSaveFolder.setFixedHeight(40)
-		self.tbSaveFolder.setReadOnly(True)
+		self.tbSaveFolder.setDisabled(True)
 
 		self.listFile = QtGui.QListWidget()
 		self.listFile.installEventFilter(self)
 		self.listFile.setFixedWidth(120)
 
+		self.lbName = QtGui.QLabel("Point Number :")
+		self.lbName.setFixedWidth(100)
+		self.tbName = QtGui.QLineEdit("")
+		self.tbName.setFixedWidth(100)
+		
+
 		layoutControl = QtGui.QGridLayout()
-		lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, self.listFile]
-		# lsControl = [self.btnRawImg, self.cbGray, self.slGray, self.slHarris, self.cbHough,
-		# 			self.btnDrawLine, self.btnClearLines, self.slHough, self.cbNonMaxSup, 
-		# 			self.cbAutoCorrection, 
-		# 			self.lbName, self.tbName, self.btnClick, self.btnTest]
+		lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, self.listFile, 
+					self.lbName, self.tbName, self.edt]
 		
 		gridW = 1
 		for i in range(len(lsControl)):
@@ -304,10 +234,7 @@ class Window(QtGui.QDialog):
 		layout.addWidget(self.toolbar,0,0,1,4)
 		layout.addWidget(self.canvas,1,1,4,3)
 		layout.addLayout(layoutControl,1,0,1,1)
-		# layout.addWidget(self.listPoint,2,0,1,1)
-		# layout.addWidget(self.edt,3,0,1,1)
-		# layout.addWidget(self.btnGenerate,4,0,1,1)
-
+		
 		self.setLayout(layout)
 		self.ax = self.figure.add_subplot(111)
 		self.figure.tight_layout()
