@@ -82,8 +82,24 @@ class Window(QtGui.QDialog):
 				self.folder[filename] = os.path.dirname(url)
 
 		self.plotFirstInList()
-		while not self.click():
-			pass
+		x,y = self.clickRepeat()
+
+		savefolder = str(self.tbSaveFolder.toPlainText())
+		filename, ext = os.path.splitext(str(self.listFile.item(0).text()))
+		savefile = os.path.join(savefolder, filename + '.txt')
+		numPoint = int(self.tbNum.text())
+		if os.path.isfile(savefile):
+			points = np.loadtxt(savefile, dtype='int')
+			if len(points.shape) == 1:
+				points = points.reshape(1,-1)
+			row = np.array([[numPoint,x,y]])
+			points = np.append(points,row,axis=0)
+			points = points[points[:, 0].argsort()]
+			np.savetxt(savefile, points, fmt='%i')
+		else:
+			row = np.array([[numPoint,x,y]])
+			np.savetxt(savefile, row, fmt='%i')
+
 
 	def plotFirstInList(self):		
 		filename = str(self.listFile.item(0).text())
@@ -96,28 +112,25 @@ class Window(QtGui.QDialog):
 		self.ax.set_xlabel(file)
 		self.canvas.draw()
 
-	def generate(self):
-		strFile, _ = os.path.splitext(self.file)
+	# def generate(self):
+	# 	strFile, _ = os.path.splitext(self.file)
 		
-		with open(strFile + ".txt", "w") as file:
-			for n, p in zip(self.lsName, self.lsPoint):
-				file.write(n + " %d %d\n" % (p[0],p[1]))
+	# 	with open(strFile + ".txt", "w") as file:
+	# 		for n, p in zip(self.lsName, self.lsPoint):
+	# 			file.write(n + " %d %d\n" % (p[0],p[1]))
 
 
-	def click(self):
-		x,y = self.getClickedPoint()
+	def clickRepeat(self):
 		
-		self.ax.plot(x,y,'g.')
-		self.canvas.draw()
-		
-		if QtGui.QMessageBox.question(self,'', "Is it the corner?", 
-			QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == QtGui.QMessageBox.Yes:
-			# (x,y)
-			# self.lsName.append(self.tbName.text())
-			return True
-		else:
-			return False
-		
+		while True:
+			x,y = self.getClickedPoint()			
+			self.ax.plot(x,y,'g.')
+			self.canvas.draw()
+			
+			if QtGui.QMessageBox.question(self,'', "Is it the point?", 
+				QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == QtGui.QMessageBox.Yes:
+				return x, y
+			
 
 
 	def getClickedPoint(self):
@@ -209,15 +222,15 @@ class Window(QtGui.QDialog):
 		self.listFile.installEventFilter(self)
 		self.listFile.setFixedWidth(120)
 
-		self.lbName = QtGui.QLabel("Point Number :")
-		self.lbName.setFixedWidth(100)
-		self.tbName = QtGui.QLineEdit("")
-		self.tbName.setFixedWidth(100)
+		self.lbNum = QtGui.QLabel("Point Number :")
+		self.lbNum.setFixedWidth(100)
+		self.tbNum = QtGui.QLineEdit("")
+		self.tbNum.setFixedWidth(100)
 		
 
 		layoutControl = QtGui.QGridLayout()
 		lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, self.listFile, 
-					self.lbName, self.tbName, self.edt]
+					self.lbNum, self.tbNum, self.edt]
 		
 		gridW = 1
 		for i in range(len(lsControl)):
