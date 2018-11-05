@@ -81,25 +81,31 @@ class Window(QtGui.QDialog):
 				self.listFile.addItem(filename)
 				self.folder[filename] = os.path.dirname(url)
 
-		self.plotFirstInList()
-		x,y = self.clickRepeat()
+		while self.listFile.count() > 0:
+			print self.listFile.count()
+			self.plotFirstInList()
+			x,y = self.clickRepeat()
 
-		savefolder = str(self.tbSaveFolder.toPlainText())
-		filename, ext = os.path.splitext(str(self.listFile.item(0).text()))
-		savefile = os.path.join(savefolder, filename + '.txt')
-		numPoint = int(self.tbNum.text())
-		if os.path.isfile(savefile):
-			points = np.loadtxt(savefile, dtype='int')
-			if len(points.shape) == 1:
-				points = points.reshape(1,-1)
-			row = np.array([[numPoint,x,y]])
-			points = np.append(points,row,axis=0)
-			points = points[points[:, 0].argsort()]
-			np.savetxt(savefile, points, fmt='%i')
-		else:
-			row = np.array([[numPoint,x,y]])
-			np.savetxt(savefile, row, fmt='%i')
+			savefolder = str(self.tbSaveFolder.toPlainText())
+			filename, ext = os.path.splitext(str(self.listFile.item(0).text()))
+			savefile = os.path.join(savefolder, filename + '.txt')
+			numPoint = int(self.tbNum.text())
+			if os.path.isfile(savefile):
+				points = np.loadtxt(savefile, dtype='int')
+				if len(points.shape) == 1:
+					points = points.reshape(1,-1)
+				row = np.array([[numPoint,x,y]])
+				points = np.append(points,row,axis=0)
+				points = points[points[:, 0].argsort()]
+				np.savetxt(savefile, points, fmt='%i')
+			else:
+				row = np.array([[numPoint,x,y]])
+				np.savetxt(savefile, row, fmt='%i')
 
+			file = str(self.listFile.item(0).text())
+			del self.folder[file]
+			self.listFile.takeItem(0)
+			
 
 	def plotFirstInList(self):		
 		filename = str(self.listFile.item(0).text())
