@@ -14,9 +14,14 @@ from PyQt4.QtCore import QTimer, QEvent, Qt, QDir
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
+import matplotlib.cm as cm
 
 import cv2
 
+n = 50
+x = np.arange(n)
+ys = [i+x+(i*x)**2 for i in range(n)]
+rainbow_cm = cm.rainbow(np.linspace(0, 1, len(ys))) * 255
 
 class Window(QtGui.QDialog):
 	def __init__(self, parent=None):
@@ -66,20 +71,22 @@ class Window(QtGui.QDialog):
 
 	def dropEvent(self, event):
 
-		if len(event.mimeData().urls()) != 1:
-			return
-		url = unicode(event.mimeData().urls()[0].toLocalFile()) 
-		if os.path.isdir(url):
-			folder = os.path.dirname(url)
-			for filename in os.listdir(url):
+
+		# if len(event.mimeData().urls()) != 1:
+		# 	return
+		for url in event.mimeData().urls():
+			url = unicode(url.toLocalFile()) 
+			if os.path.isdir(url):
+				folder = os.path.dirname(url)
+				for filename in os.listdir(url):
+					if os.path.splitext(filename)[1] == '.jpg' or os.path.splitext(filename)[1] == '.png':
+						self.listFile.addItem(filename)
+						self.folder[filename] = folder
+			else:
+				filename = os.path.basename(url)
 				if os.path.splitext(filename)[1] == '.jpg' or os.path.splitext(filename)[1] == '.png':
 					self.listFile.addItem(filename)
-					self.folder[filename] = folder
-		else:
-			if os.path.splitext(filename)[1] == '.jpg' or os.path.splitext(filename)[1] == '.png':
-				filename = os.path.basename(url)
-				self.listFile.addItem(filename)
-				self.folder[filename] = os.path.dirname(url)
+					self.folder[filename] = os.path.dirname(url)
 
 		while self.listFile.count() > 0:
 			print self.listFile.count()
@@ -113,21 +120,24 @@ class Window(QtGui.QDialog):
 		file = os.path.join(folder,filename)
 		self.img = cv2.cvtColor(cv2.imread(file), cv2.COLOR_BGR2RGB)
 		h, w, _ = self.img.shape
+
+		savefolder = str(self.tbSaveFolder.toPlainText())
+		savefile = os.path.join(savefolder, os.path.splitext(filename)[0] + '.txt')
+		if os.path.isfile(savefile):
+			points = np.loadtxt(savefile, dtype='int')
+			if len(points.shape) == 1:
+				points = points.reshape(1,-1)
+			for pt in points:
+				numPoint,x,y = pt
+				cv2.circle(self.img, center = (x,y), radius = 3, color = rainbow_cm[numPoint % 50], thickness = 2)
+				
 		self.ax.clear()
 		self.ax.imshow(self.img)
 		self.ax.set_xlabel(file)
 		self.canvas.draw()
 
-	# def generate(self):
-	# 	strFile, _ = os.path.splitext(self.file)
-		
-	# 	with open(strFile + ".txt", "w") as file:
-	# 		for n, p in zip(self.lsName, self.lsPoint):
-	# 			file.write(n + " %d %d\n" % (p[0],p[1]))
-
-
 	def clickRepeat(self):
-		
+
 		while True:
 			x,y = self.getClickedPoint()			
 			self.ax.plot(x,y,'g.')
@@ -144,7 +154,11 @@ class Window(QtGui.QDialog):
 		self.ax.set_ylim(self.ax.get_ylim()) 
 
 		self.edt.appendPlainText("Click point")
-		X = self.figure.ginput(1)[0]
+
+		Xs = self.figure.ginput(1)
+		while len(Xs) == 0:
+			Xs = self.figure.ginput(1)			
+		X = Xs[0]
 		x, y = X
 		x = int(round(x))
 		y = int(round(y))
@@ -202,12 +216,6 @@ class Window(QtGui.QDialog):
 		# self.btnClick.setFixedWidth(100)
 		# self.btnClick.clicked.connect(self.click)
 
-		# self.cbAutoCorrection = QtGui.QCheckBox("Auto Correction")
-		# self.cbAutoCorrection.stateChanged.connect(lambda:self.evCheckBox(self.cbAutoCorrection))
-
-		# self.btnGenerate = QtGui.QPushButton('Generate')
-		# self.btnGenerate.setFixedWidth(100)
-		# self.btnGenerate.clicked.connect(self.generate)
 
 		
 		# self.btnTest = QtGui.QPushButton('Test')
