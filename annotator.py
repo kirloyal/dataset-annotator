@@ -89,7 +89,6 @@ class Window(QtGui.QDialog):
 					self.folder[filename] = os.path.dirname(url)
 
 		while self.listFile.count() > 0:
-			print self.listFile.count()
 			self.plotFirstInList()
 			x,y = self.clickRepeat()
 
@@ -147,7 +146,11 @@ class Window(QtGui.QDialog):
 				QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == QtGui.QMessageBox.Yes:
 				return x, y
 			
-
+	def skip(self):
+		file = str(self.listFile.item(0).text())
+		del self.folder[file]
+		self.listFile.takeItem(0)
+		self.plotFirstInList()
 
 	def getClickedPoint(self):
 		self.ax.set_xlim(self.ax.get_xlim()) 
@@ -212,15 +215,11 @@ class Window(QtGui.QDialog):
 		# self.cbNonMaxSup = QtGui.QCheckBox("Non-Max-Sup")
 		# self.cbNonMaxSup.stateChanged.connect(lambda:self.evCheckBox(self.cbNonMaxSup))
 
-		# self.btnClick = QtGui.QPushButton('Click')
-		# self.btnClick.setFixedWidth(100)
-		# self.btnClick.clicked.connect(self.click)
-
-
 		
 		# self.btnTest = QtGui.QPushButton('Test')
 		# self.btnTest.setFixedWidth(100)
 		# self.btnTest.clicked.connect(self.test)
+
 
 		self.lbSaveFolder = QtGui.QLabel("Save Folder :")
 		self.lbSaveFolder.setFixedWidth(100)
@@ -241,10 +240,14 @@ class Window(QtGui.QDialog):
 		self.tbNum = QtGui.QLineEdit("")
 		self.tbNum.setFixedWidth(100)
 		
+		self.btnSkip = QtGui.QPushButton('Skip')
+		self.btnSkip.setFixedWidth(100)
+		self.btnSkip.clicked.connect(self.skip)
+
 
 		layoutControl = QtGui.QGridLayout()
 		lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, self.listFile, 
-					self.lbNum, self.tbNum, self.edt]
+					self.lbNum, self.tbNum, self.edt, self.btnSkip]
 		
 		gridW = 1
 		for i in range(len(lsControl)):
