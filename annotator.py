@@ -64,8 +64,6 @@ class Window(QtGui.QDialog):
             event.ignore()
 
     def dropEvent(self, event):
-
-
         # if len(event.mimeData().urls()) != 1:
         #     return
         for url in event.mimeData().urls():
@@ -82,44 +80,79 @@ class Window(QtGui.QDialog):
                     self.listFile.addItem(filename)
                     self.folder[filename] = os.path.dirname(url)
 
-        while self.listFile.count() > 0:
-            self.plotFirstInList()
-            x,y = self.clickRepeat()
 
-            savefolder = str(self.tbSaveFolder.toPlainText())
-            filename, ext = os.path.splitext(str(self.listFile.item(0).text()))
-            savefile_txt = os.path.join(savefolder, filename + '.txt')
-            savefile_img = os.path.join(savefolder, filename + '.jpg')
-            numPoint = int(self.tbNum.text())
-            if os.path.isfile(savefile_txt):
-                points = np.loadtxt(savefile_txt, dtype='int')
-                if points.size != 0:
-                    if len(points.shape) == 1:
-                        points = points.reshape(1,-1)
-                    row = np.array([[numPoint,x,y]])
-                    points = np.append(points,row,axis=0)
-                    points = points[points[:, 0].argsort()]
-                    np.savetxt(savefile_txt, points, fmt='%i')
+        while self.listFile.count() > 0:
+            if self.bDrawStripe:
+                self.bDrawStripe = False
+            else:
+                self.plotFirstInList()
+
+            # x,y = self.clickRepeat()
+            x,y = self.getClickedPoint()  
+            
+            if self.bDrawStripe:
+                p0 = (x,y)
+                p1 = self.getClickedPoint()  
+                self.ax.plot([p0[0],p1[0]],[p0[1],p1[1]],'g')
+                
+                h, w, _ = self.img.shape
+            
+                
+                if p0[0] == p1[0]:
+                    maxl = max(h, w)
+                    res = int(maxl / 10)
+                    
+                    for off in range(-12,12):
+                        self.ax.plot([res * off,res * off],[0, w],'r')
+                else:
+                    maxl = max(h, w)
+                    r = np.abs(p0[0]-p1[0]) / np.sqrt( (p0[1]-p1[1])**2 + (p0[0]-p1[0])**2 )
+                    res = int(maxl / (10*r))
+                    offs = range(-maxl, 2 * maxl, res)
+
+                    r = float(p0[1] - p1[1]) / float(p0[0] - p1[0])
+                    for off in range(-12,12):
+                        self.ax.plot([0,w],[off * res, r * w + off * res],'r')
+                
+                self.canvas.draw()
+                    
+            else:
+                savefolder = str(self.tbSaveFolder.toPlainText())
+                filename, ext = os.path.splitext(str(self.listFile.item(0).text()))
+                savefile_txt = os.path.join(savefolder, filename + '.txt')
+                savefile_img = os.path.join(savefolder, filename + '.jpg')
+                numPoint = int(self.tbNum.text())
+                if os.path.isfile(savefile_txt):
+                    points = np.loadtxt(savefile_txt, dtype='int')
+                    if points.size != 0:
+                        if len(points.shape) == 1:
+                            points = points.reshape(1,-1)
+                        row = np.array([[numPoint,x,y]])
+                        points = np.append(points,row,axis=0)
+                        points = points[points[:, 0].argsort()]
+                        np.savetxt(savefile_txt, points, fmt='%i')
+                    else:
+                        row = np.array([[numPoint,x,y]])
+                        np.savetxt(savefile_txt, row, fmt='%i')
                 else:
                     row = np.array([[numPoint,x,y]])
                     np.savetxt(savefile_txt, row, fmt='%i')
-            else:
-                row = np.array([[numPoint,x,y]])
-                np.savetxt(savefile_txt, row, fmt='%i')
 
-            h, w, _ = self.img.shape
-            fs = max(float(max(h, w))/1000, 0.1)
-            cv2.circle(self.img, center = (x,y), radius = max(int(fs*6),1), color = rainbow_cm[numPoint % 50], thickness = int(round(fs*3)))
-            cv2.putText(self.img, str(numPoint), (int(x-fs*30), int(y+fs*30)), 
-                cv2.FONT_HERSHEY_SIMPLEX, fs, color = rainbow_cm[numPoint % 50], 
-                thickness=int(round(fs*3)) )
-            cv2.imwrite(savefile_img, cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB))
+                h, w, _ = self.img.shape
+                fs = max(float(max(h, w))/1000, 0.1)
+                cv2.circle(self.img, center = (x,y), radius = max(int(fs*6),1), color = rainbow_cm[numPoint % 50], thickness = int(round(fs*3)))
+                cv2.putText(self.img, str(numPoint), (int(x-fs*30), int(y+fs*30)), 
+                    cv2.FONT_HERSHEY_SIMPLEX, fs, color = rainbow_cm[numPoint % 50], 
+                    thickness=int(round(fs*3)) )
+                cv2.imwrite(savefile_img, cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB))
 
-            if not self.cbKeepEditing.isChecked():
-                file = str(self.listFile.item(0).text())
-                del self.folder[file]
-                self.listFile.takeItem(0)
+                if not self.cbKeepEditing.isChecked():
+                    file = str(self.listFile.item(0).text())
+                    del self.folder[file]
+                    self.listFile.takeItem(0)
             
+                
+
 
     def plotFirstInList(self):        
         filename = str(self.listFile.item(0).text())
@@ -203,6 +236,10 @@ class Window(QtGui.QDialog):
             lsUrl = dlg.selectedFiles()
             self.tbSaveFolder.setPlainText(lsUrl[0])
 
+    def setStripe(self):
+        self.bDrawStripe = True
+
+
     def initUI(self):
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
@@ -237,18 +274,26 @@ class Window(QtGui.QDialog):
         self.btnDelete = QtGui.QPushButton('Delete')
         self.btnDelete.setFixedWidth(100)
         self.btnDelete.clicked.connect(self.delete)
-        
+
+        self.btnStripe = QtGui.QPushButton('Draw Stripe')
+        self.btnStripe.setFixedWidth(100)
+        self.btnStripe.clicked.connect(self.setStripe)
+        self.bDrawStripe = False
+
+        self.btnClear = QtGui.QPushButton('Clear')
+        self.btnClear.setFixedWidth(100)
+        self.btnClear.clicked.connect(self.plotFirstInList)
+
+
         self.edt = QtGui.QPlainTextEdit()
         self.edt.setDisabled(True)
         self.edt.setMaximumBlockCount(10)
         self.edt.setFixedWidth(120)
 
-
-
-
         layoutControl = QtGui.QGridLayout()
         lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, self.cbKeepEditing, 
-                    self.btnSkip, self.listFile, self.lbNum, self.tbNum, self.btnDelete ,self.edt]
+                    self.btnSkip, self.listFile, self.lbNum, self.tbNum, self.btnDelete, 
+                    self.btnStripe, self.btnClear, self.edt]
         
         gridW = 1
         for i in range(len(lsControl)):
