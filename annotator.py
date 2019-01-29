@@ -41,7 +41,9 @@ class Window(QtGui.QDialog):
         self.folder = {}
 
     def evCheckBox(self, cb):    
-        pass
+        if cb == self.cbHistEqual:
+            self.plotFirstInList()
+            
 
     def evSlider(self, sl):
         pass
@@ -94,24 +96,25 @@ class Window(QtGui.QDialog):
                 p0 = (x,y)
                 p1 = self.getClickedPoint()  
                 self.ax.plot([p0[0],p1[0]],[p0[1],p1[1]],'g')
+                self.ax.plot((p0[0]+p1[0])/2, (p0[1]+p1[1])/2, 'g*')
                 
                 h, w, _ = self.img.shape
             
                 
                 if p0[0] == p1[0]:
                     maxl = max(h, w)
-                    res = int(maxl / 10)
+                    res = int(maxl / 20)
                     
-                    for off in range(-12,12):
+                    for off in range(-20,30):
                         self.ax.plot([res * off,res * off],[0, w],'r')
                 else:
                     maxl = max(h, w)
                     r = np.abs(p0[0]-p1[0]) / np.sqrt( (p0[1]-p1[1])**2 + (p0[0]-p1[0])**2 )
-                    res = int(maxl / (10*r))
+                    res = int(maxl / (20*r))
                     offs = range(-maxl, 2 * maxl, res)
 
                     r = float(p0[1] - p1[1]) / float(p0[0] - p1[0])
-                    for off in range(-12,12):
+                    for off in range(-20,30):
                         self.ax.plot([0,w],[off * res, r * w + off * res],'r')
                 
                 self.canvas.draw()
@@ -177,7 +180,14 @@ class Window(QtGui.QDialog):
                         thickness=int(round(fs*3)) )
 
         self.ax.clear()
-        self.ax.imshow(self.img)
+        if self.cbHistEqual.isChecked():
+            img_yuv = cv2.cvtColor(self.img, cv2.COLOR_BGR2YUV)
+            img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
+            img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+            self.ax.imshow(img_output)
+
+        else:
+            self.ax.imshow(self.img)
         self.ax.set_xlabel(file)
         self.canvas.draw()
 
@@ -258,6 +268,10 @@ class Window(QtGui.QDialog):
         self.cbKeepEditing = QtGui.QCheckBox("Keep img")
         self.cbKeepEditing.setChecked(True)
 
+        self.cbHistEqual = QtGui.QCheckBox("Hist Equalize")
+        self.cbHistEqual.stateChanged.connect(lambda:self.evCheckBox(self.cbHistEqual))
+        self.cbHistEqual.setChecked(True)
+
         self.btnSkip = QtGui.QPushButton('Skip')
         self.btnSkip.setFixedWidth(100)
         self.btnSkip.clicked.connect(self.skip)
@@ -291,7 +305,8 @@ class Window(QtGui.QDialog):
         self.edt.setFixedWidth(120)
 
         layoutControl = QtGui.QGridLayout()
-        lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, self.cbKeepEditing, 
+        lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, self.cbKeepEditing,
+                    self.cbHistEqual, 
                     self.btnSkip, self.listFile, self.lbNum, self.tbNum, self.btnDelete, 
                     self.btnStripe, self.btnClear, self.edt]
         
