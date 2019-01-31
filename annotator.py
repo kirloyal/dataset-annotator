@@ -1,4 +1,3 @@
-
 # from __future__ import print_function
 
 import sys
@@ -43,7 +42,9 @@ class Window(QtGui.QDialog):
     def evCheckBox(self, cb):    
         if cb == self.cbHistEqual:
             self.plotFirstInList()
+        
             
+    
 
     def evSlider(self, sl):
         pass
@@ -53,7 +54,10 @@ class Window(QtGui.QDialog):
         if event.type() == QEvent.KeyPress:
             if event.key() == Qt.Key_Space:
                 self.skip()
-
+            elif event.key() == Qt.Key_D:
+                self.delete()
+            elif event.key() == Qt.Key_H:
+                self.cbHistEqual.toggle()
             return super(Window, self).eventFilter(obj, event)
         else:
             return super(Window, self).eventFilter(obj, event)
@@ -66,8 +70,6 @@ class Window(QtGui.QDialog):
             event.ignore()
 
     def dropEvent(self, event):
-        # if len(event.mimeData().urls()) != 1:
-        #     return
         for url in event.mimeData().urls():
             url = unicode(url.toLocalFile()) 
             if os.path.isdir(url):
@@ -81,12 +83,11 @@ class Window(QtGui.QDialog):
                 if os.path.splitext(filename)[1] == '.jpg' or os.path.splitext(filename)[1] == '.png':
                     self.listFile.addItem(filename)
                     self.folder[filename] = os.path.dirname(url)
-
-
+        
         while self.listFile.count() > 0:
             if self.bDrawStripe:
                 self.bDrawStripe = False
-            else:
+            elif self.cbClicking.isChecked():
                 self.plotFirstInList()
 
             # x,y = self.clickRepeat()
@@ -119,7 +120,7 @@ class Window(QtGui.QDialog):
                 
                 self.canvas.draw()
                     
-            else:
+            elif self.cbClicking.isChecked():
                 savefolder = str(self.tbSaveFolder.toPlainText())
                 filename, ext = os.path.splitext(str(self.listFile.item(0).text()))
                 savefile_txt = os.path.join(savefolder, filename + '.txt')
@@ -265,13 +266,13 @@ class Window(QtGui.QDialog):
         self.tbSaveFolder.setFixedHeight(40)
         self.tbSaveFolder.setDisabled(True)
 
-        self.cbKeepEditing = QtGui.QCheckBox("Keep img")
-        self.cbKeepEditing.setChecked(True)
+        self.cbClicking = QtGui.QCheckBox("Click Points")
 
+        self.cbKeepEditing = QtGui.QCheckBox("Keep img")
+        
         self.cbHistEqual = QtGui.QCheckBox("Hist Equalize")
         self.cbHistEqual.stateChanged.connect(lambda:self.evCheckBox(self.cbHistEqual))
-        self.cbHistEqual.setChecked(True)
-
+        
         self.btnSkip = QtGui.QPushButton('Skip')
         self.btnSkip.setFixedWidth(100)
         self.btnSkip.clicked.connect(self.skip)
@@ -305,8 +306,8 @@ class Window(QtGui.QDialog):
         self.edt.setFixedWidth(120)
 
         layoutControl = QtGui.QGridLayout()
-        lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, self.cbKeepEditing,
-                    self.cbHistEqual, 
+        lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, 
+                    self.cbClicking, self.cbKeepEditing, self.cbHistEqual, 
                     self.btnSkip, self.listFile, self.lbNum, self.tbNum, self.btnDelete, 
                     self.btnStripe, self.btnClear, self.edt]
         
@@ -329,6 +330,10 @@ class Window(QtGui.QDialog):
         self.setLayout(layout)
         self.ax = self.figure.add_subplot(111)
         self.figure.tight_layout()
+
+        self.cbClicking.setChecked(True)
+        self.cbKeepEditing.setChecked(True)
+        self.cbHistEqual.setChecked(True)
 
 
 if __name__ == '__main__':
