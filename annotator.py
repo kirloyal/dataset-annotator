@@ -58,6 +58,9 @@ class Window(QtGui.QDialog):
                 self.delete()
             elif event.key() == Qt.Key_H:
                 self.cbHistEqual.toggle()
+            elif event.key() == Qt.Key_C:
+                self.cbClicking.toggle()
+
             return super(Window, self).eventFilter(obj, event)
         else:
             return super(Window, self).eventFilter(obj, event)
@@ -89,6 +92,7 @@ class Window(QtGui.QDialog):
                 self.bDrawStripe = False
             elif self.cbClicking.isChecked():
                 self.plotFirstInList()
+                
 
             # x,y = self.clickRepeat()
             x,y = self.getClickedPoint()  
@@ -125,7 +129,11 @@ class Window(QtGui.QDialog):
                 filename, ext = os.path.splitext(str(self.listFile.item(0).text()))
                 savefile_txt = os.path.join(savefolder, filename + '.txt')
                 savefile_img = os.path.join(savefolder, filename + '.jpg')
-                numPoint = int(self.tbNum.text())
+                try:
+                    numPoint = int(self.tbNum.text())
+                except ValueError:
+                    continue
+                
                 if os.path.isfile(savefile_txt):
                     points = np.loadtxt(savefile_txt, dtype='int')
                     if points.size != 0:
@@ -158,8 +166,12 @@ class Window(QtGui.QDialog):
                 
 
 
-    def plotFirstInList(self):        
-        filename = str(self.listFile.item(0).text())
+    def plotFirstInList(self):   
+        try:     
+            filename = str(self.listFile.item(0).text())
+        except AttributeError:
+            return
+            
         folder = self.folder[filename]
         file = os.path.join(folder,filename)
         self.img = cv2.cvtColor(cv2.imread(file), cv2.COLOR_BGR2RGB)
