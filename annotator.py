@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
+
+
 from PyQt4 import QtGui
 from PyQt4.QtCore import QTimer, QEvent, Qt, QDir
 
@@ -39,6 +41,9 @@ class Window(QtGui.QDialog):
         self.lsName = []
         self.folder = {}
 
+    def __del__(self):
+        sys.exit()
+        
     def evCheckBox(self, cb):    
         if cb == self.cbHistEqual:
             self.plotFirstInList()
@@ -81,13 +86,16 @@ class Window(QtGui.QDialog):
                     if os.path.splitext(filename)[1] == '.jpg' or os.path.splitext(filename)[1] == '.png':
                         self.listFile.addItem(filename)
                         self.folder[filename] = folder
+                self.setNumFile()
             else:
                 filename = os.path.basename(url)
                 if os.path.splitext(filename)[1] == '.jpg' or os.path.splitext(filename)[1] == '.png':
                     self.listFile.addItem(filename)
                     self.folder[filename] = os.path.dirname(url)
-        
+                self.setNumFile()
+
         while self.listFile.count() > 0:
+            self.setNumFile()
             if self.bDrawStripe:
                 self.bDrawStripe = False
             elif self.cbClicking.isChecked():
@@ -162,6 +170,7 @@ class Window(QtGui.QDialog):
                     file = str(self.listFile.item(0).text())
                     del self.folder[file]
                     self.listFile.takeItem(0)
+                    self.setNumFile()
             
                 
 
@@ -232,6 +241,7 @@ class Window(QtGui.QDialog):
         del self.folder[file]
         if self.listFile.count() > 0:
             self.listFile.takeItem(0)
+            self.setNumFile()
             self.plotFirstInList()
 
     def getClickedPoint(self):
@@ -262,6 +272,12 @@ class Window(QtGui.QDialog):
     def setStripe(self):
         self.bDrawStripe = True
 
+    def setNumFile(self):
+        self.lbNumFile.setText(str(self.listFile.count()))
+        
+        
+    def close(self):
+        sys.exit()
 
     def initUI(self):
         self.figure = Figure()
@@ -289,9 +305,14 @@ class Window(QtGui.QDialog):
         self.btnSkip.setFixedWidth(100)
         self.btnSkip.clicked.connect(self.skip)
 
+        self.lbNumFile = QtGui.QLabel("0")
+        self.lbNumFile.setFixedWidth(100)
+
         self.listFile = QtGui.QListWidget()
         self.listFile.installEventFilter(self)
         self.listFile.setFixedWidth(120)
+        
+
 
         self.lbNum = QtGui.QLabel("Point Number :")
         self.lbNum.setFixedWidth(100)
@@ -311,17 +332,22 @@ class Window(QtGui.QDialog):
         self.btnClear.setFixedWidth(100)
         self.btnClear.clicked.connect(self.plotFirstInList)
 
-
         self.edt = QtGui.QPlainTextEdit()
         self.edt.setDisabled(True)
         self.edt.setMaximumBlockCount(10)
         self.edt.setFixedWidth(120)
 
+        self.btnQuit = QtGui.QPushButton('Quit')
+        self.btnQuit.setFixedWidth(100)
+        self.btnQuit.clicked.connect(self.close)
+
+
         layoutControl = QtGui.QGridLayout()
         lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, 
                     self.cbClicking, self.cbKeepEditing, self.cbHistEqual, 
-                    self.btnSkip, self.listFile, self.lbNum, self.tbNum, self.btnDelete, 
-                    self.btnStripe, self.btnClear, self.edt]
+                    self.btnSkip, 
+                    self.lbNumFile, self.listFile, self.lbNum, self.tbNum, self.btnDelete, 
+                    self.btnStripe, self.btnClear, self.edt, self.btnQuit]
         
         gridW = 1
         for i in range(len(lsControl)):
