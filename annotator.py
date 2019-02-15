@@ -61,9 +61,9 @@ class Window(QtGui.QDialog):
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.KeyPress:
-            if event.key() == Qt.Key_Right:
+            if event.key() == Qt.Key_L:
                 self.goForward()
-            if event.key() == Qt.Key_Left:
+            if event.key() == Qt.Key_K:
                 self.goBackward()
             elif event.key() == Qt.Key_D:
                 self.delete()
@@ -80,7 +80,10 @@ class Window(QtGui.QDialog):
             elif event.key() == Qt.Key_A:
                 self.plotIdx(self.idx)
             elif event.key() == Qt.Key_E:
+                self.tbNum.setText('')
                 self.tbNum.setFocus()
+            elif event.key() == Qt.Key_Q:
+                self.close()
 
             return super(Window, self).eventFilter(obj, event)
         else:
@@ -150,7 +153,7 @@ class Window(QtGui.QDialog):
                     
             elif self.cbClicking.isChecked():
                 savefolder = str(self.tbSaveFolder.toPlainText())
-                filename, ext = os.path.splitext(str(self.listFile.item(0).text()))
+                filename, ext = os.path.splitext(str(self.listFile.item(self.idx).text()))
                 savefile_txt = os.path.join(savefolder, filename + '.txt')
                 savefile_img = os.path.join(savefolder, filename + '.jpg')
                 try:
@@ -166,13 +169,14 @@ class Window(QtGui.QDialog):
                         row = np.array([[numPoint,x,y]])
                         points = np.append(points,row,axis=0)
                         points = points[points[:, 0].argsort()]
-                        np.savetxt(savefile_txt, points, fmt='%i')
+                        np.savetxt(savefile_txt, points, fmt=str('%i'))
                     else:
                         row = np.array([[numPoint,x,y]])
-                        np.savetxt(savefile_txt, row, fmt='%i')
+                        print savefile_txt, row
+                        np.savetxt(savefile_txt, row, fmt=str('%i'))
                 else:
                     row = np.array([[numPoint,x,y]])
-                    np.savetxt(savefile_txt, row, fmt='%i')
+                    np.savetxt(savefile_txt, row, fmt=str('%i'))
 
                 h, w, _ = self.img.shape
                 fs = max(float(max(h, w))/1000, 0.1)
@@ -183,7 +187,7 @@ class Window(QtGui.QDialog):
                 cv2.imwrite(savefile_img, cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB))
 
                 if not self.cbKeepEditing.isChecked():
-                    file = str(self.listFile.item(0).text())
+                    file = str(self.listFile.item(self.idx).text())
                     del self.folder[file]
                     self.listFile.takeItem(0)
                     self.setNumFile()
@@ -251,7 +255,7 @@ class Window(QtGui.QDialog):
     
     def delete(self):
         savefolder = str(self.tbSaveFolder.toPlainText())
-        filename, ext = os.path.splitext(str(self.listFile.item(0).text()))
+        filename, ext = os.path.splitext(str(self.listFile.item(self.idx).text()))
         savefile_txt = os.path.join(savefolder, filename + '.txt')
         numPoint = int(self.tbNum.text())
         if os.path.isfile(savefile_txt):
@@ -259,7 +263,7 @@ class Window(QtGui.QDialog):
             if len(points.shape) == 1:
                 points = points.reshape(1,-1)
             points = points[points[:,0] != numPoint,:]
-            np.savetxt(savefile_txt, points, fmt='%i')
+            np.savetxt(savefile_txt, points, fmt=str('%i'))
         self.plotIdx(self.idx)
         
     def goForward(self):
