@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 # from __future__ import print_function
+from __future__ import unicode_literals
 
 import sys
 import os
@@ -32,21 +34,23 @@ class Window(QtGui.QDialog):
         self.resize(w, h)
         self.setAcceptDrops(True)
 
-        self.initUI()
-        
         self.imgHarris = False
         self.imgHough = False
 
-        self.lsPoint = []
-        self.lsName = []
         self.folder = {}
+        self.idx = 0
+
+        self.initUI()
+        self.installEventFilter(self)
+
+
 
     def __del__(self):
         sys.exit()
         
     def evCheckBox(self, cb):    
         if cb == self.cbHistEqual:
-            self.plotFirstInList()
+            self.plotIdx(self.idx)
         
             
     
@@ -57,14 +61,26 @@ class Window(QtGui.QDialog):
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.KeyPress:
-            if event.key() == Qt.Key_Space:
-                self.skip()
+            if event.key() == Qt.Key_Right:
+                self.goForward()
+            if event.key() == Qt.Key_Left:
+                self.goBackward()
             elif event.key() == Qt.Key_D:
                 self.delete()
+            elif event.key() == Qt.Key_N:
+                self.cbDrawNums.toggle()
+            elif event.key() == Qt.Key_P:
+                self.cbDrawPoints.toggle()
             elif event.key() == Qt.Key_H:
                 self.cbHistEqual.toggle()
             elif event.key() == Qt.Key_C:
                 self.cbClicking.toggle()
+            elif event.key() == Qt.Key_S:
+                self.setStripe()
+            elif event.key() == Qt.Key_A:
+                self.plotIdx(self.idx)
+            elif event.key() == Qt.Key_E:
+                self.tbNum.setFocus()
 
             return super(Window, self).eventFilter(obj, event)
         else:
@@ -99,7 +115,7 @@ class Window(QtGui.QDialog):
             if self.bDrawStripe:
                 self.bDrawStripe = False
             elif self.cbClicking.isChecked():
-                self.plotFirstInList()
+                self.plotIdx(self.idx)
                 
 
             # x,y = self.clickRepeat()
@@ -173,14 +189,7 @@ class Window(QtGui.QDialog):
                     self.setNumFile()
             
                 
-
-
-    def plotFirstInList(self):   
-        try:     
-            filename = str(self.listFile.item(0).text())
-        except AttributeError:
-            return
-            
+    def plot(self, filename):    
         folder = self.folder[filename]
         file = os.path.join(folder,filename)
         self.img = cv2.cvtColor(cv2.imread(file), cv2.COLOR_BGR2RGB)
@@ -196,10 +205,12 @@ class Window(QtGui.QDialog):
                 for pt in points:
                     numPoint,x,y = pt
                     fs = max(float(max(h, w))/1000, 0.1)
-                    cv2.circle(self.img, center = (x,y), radius = max(int(fs*6),1), color = rainbow_cm[numPoint % 50], thickness = int(round(fs*3)))
-                    cv2.putText(self.img, str(numPoint), (int(x-fs*30), int(y+fs*30)), 
-                        cv2.FONT_HERSHEY_SIMPLEX, fs, color = rainbow_cm[numPoint % 50], 
-                        thickness=int(round(fs*3)) )
+                    if self.cbDrawPoints.isChecked():
+                        cv2.circle(self.img, center = (x,y), radius = max(int(fs*6),1), color = rainbow_cm[numPoint % 50], thickness = int(round(fs*3)))
+                    if self.cbDrawNums.isChecked():
+                        cv2.putText(self.img, str(numPoint), (int(x-fs*30), int(y+fs*30)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, fs, color = rainbow_cm[numPoint % 50], 
+                            thickness=int(round(fs*3)) )
 
         self.ax.clear()
         if self.cbHistEqual.isChecked():
@@ -212,6 +223,21 @@ class Window(QtGui.QDialog):
             self.ax.imshow(self.img)
         self.ax.set_xlabel(file)
         self.canvas.draw()
+
+    def plotFirstInList(self):   
+        try:     
+            filename = str(self.listFile.item(0).text())
+            self.plot(filename)
+        except AttributeError:
+            return
+
+    def plotIdx(self, idx):
+        try:     
+            filename = str(self.listFile.item(idx).text())
+            self.plot(filename)
+        except AttributeError:
+            return
+
 
     def clickRepeat(self):
         while True:
@@ -234,15 +260,20 @@ class Window(QtGui.QDialog):
                 points = points.reshape(1,-1)
             points = points[points[:,0] != numPoint,:]
             np.savetxt(savefile_txt, points, fmt='%i')
-        self.plotFirstInList()
+        self.plotIdx(self.idx)
         
-    def skip(self):
-        file = str(self.listFile.item(0).text())
-        del self.folder[file]
-        if self.listFile.count() > 0:
-            self.listFile.takeItem(0)
-            self.setNumFile()
-            self.plotFirstInList()
+    def goForward(self):
+        self.idx += 1
+        self.idx %= self.listFile.count() 
+        self.plotIdx(self.idx)
+        self.setNumFile()
+
+    def goBackward(self):
+        self.idx -= 1
+        self.idx %= self.listFile.count() 
+        self.plotIdx(self.idx)
+        self.setNumFile()
+
 
     def getClickedPoint(self):
         self.ax.set_xlim(self.ax.get_xlim()) 
@@ -271,10 +302,11 @@ class Window(QtGui.QDialog):
 
     def setStripe(self):
         self.bDrawStripe = True
+        self.edt.appendPlainText("Click two points to draw")
 
     def setNumFile(self):
-        self.lbNumFile.setText(str(self.listFile.count()))
-        
+        self.lbNumFile.setText(str(self.idx))
+        # self.lbNumFile.setText(str(self.listFile.count()))
         
     def close(self):
         sys.exit()
@@ -298,21 +330,29 @@ class Window(QtGui.QDialog):
 
         self.cbKeepEditing = QtGui.QCheckBox("Keep img")
         
+        self.cbDrawPoints = QtGui.QCheckBox("Scatter points")
+        self.cbDrawPoints.stateChanged.connect(self.plotFirstInList)
+
+        self.cbDrawNums = QtGui.QCheckBox("show nums")
+        self.cbDrawNums.stateChanged.connect(self.plotFirstInList)
+
         self.cbHistEqual = QtGui.QCheckBox("Hist Equalize")
         self.cbHistEqual.stateChanged.connect(lambda:self.evCheckBox(self.cbHistEqual))
         
-        self.btnSkip = QtGui.QPushButton('Skip')
-        self.btnSkip.setFixedWidth(100)
-        self.btnSkip.clicked.connect(self.skip)
+        self.btnGoBackward= QtGui.QPushButton('←')
+        self.btnGoBackward.setFixedWidth(60)
+        self.btnGoBackward.clicked.connect(self.goBackward)
+
+        self.btnGoForward = QtGui.QPushButton('→')
+        self.btnGoForward.setFixedWidth(60)
+        self.btnGoForward.clicked.connect(self.goForward)
 
         self.lbNumFile = QtGui.QLabel("0")
         self.lbNumFile.setFixedWidth(100)
 
         self.listFile = QtGui.QListWidget()
-        self.listFile.installEventFilter(self)
         self.listFile.setFixedWidth(120)
         
-
 
         self.lbNum = QtGui.QLabel("Point Number :")
         self.lbNum.setFixedWidth(100)
@@ -344,8 +384,8 @@ class Window(QtGui.QDialog):
 
         layoutControl = QtGui.QGridLayout()
         lsControl = [self.lbSaveFolder, self.btnSaveFolder, self.tbSaveFolder, 
-                    self.cbClicking, self.cbKeepEditing, self.cbHistEqual, 
-                    self.btnSkip, 
+                    self.cbClicking, self.cbKeepEditing, self.cbDrawPoints, self.cbDrawNums,
+                    self.cbHistEqual, [self.btnGoBackward, self.btnGoForward],
                     self.lbNumFile, self.listFile, self.lbNum, self.tbNum, self.btnDelete, 
                     self.btnStripe, self.btnClear, self.edt, self.btnQuit]
         
@@ -371,6 +411,8 @@ class Window(QtGui.QDialog):
 
         self.cbClicking.setChecked(True)
         self.cbKeepEditing.setChecked(True)
+        self.cbDrawNums.setChecked(True)
+        self.cbDrawPoints.setChecked(True)
         self.cbHistEqual.setChecked(True)
 
 
