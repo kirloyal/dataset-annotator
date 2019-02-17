@@ -84,6 +84,13 @@ class Window(QtGui.QDialog):
                 self.tbNum.setFocus()
             elif event.key() == Qt.Key_Q:
                 self.close()
+            elif event.key() == Qt.Key_Z:
+                self.toolbar.zoom()
+            elif event.key() == Qt.Key_X:
+                self.toolbar.pan()
+            
+            
+        
 
             return super(Window, self).eventFilter(obj, event)
         else:
@@ -319,7 +326,6 @@ class Window(QtGui.QDialog):
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.toolbar = NavigationToolbar(self.canvas, self)
-
         self.lbSaveFolder = QtGui.QLabel("Save Folder :")
         self.lbSaveFolder.setFixedWidth(100)
         self.btnSaveFolder = QtGui.QPushButton('Search')
