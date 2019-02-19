@@ -50,7 +50,7 @@ class Window(QtGui.QDialog):
         
     def evCheckBox(self, cb):    
         if cb == self.cbHistEqual:
-            self.plotIdx(self.idx)
+            self.plotIdx()
         
             
     
@@ -78,7 +78,7 @@ class Window(QtGui.QDialog):
             elif event.key() == Qt.Key_S:
                 self.setStripe()
             elif event.key() == Qt.Key_A:
-                self.plotIdx(self.idx)
+                self.plotIdx()
             elif event.key() == Qt.Key_E:
                 self.tbNum.setText('')
                 self.tbNum.setFocus()
@@ -86,8 +86,19 @@ class Window(QtGui.QDialog):
                 self.close()
             elif event.key() == Qt.Key_Z:
                 self.toolbar.zoom()
+                if self.toolbar._active == 'ZOOM':
+                    self.cbClicking.setChecked(False)
+                elif self.toolbar._active == None:
+                    self.cbClicking.setChecked(True)
             elif event.key() == Qt.Key_X:
                 self.toolbar.pan()
+                if self.toolbar._active == 'PAN':
+                    self.cbClicking.setChecked(False)
+                elif self.toolbar._active == None:
+                    self.cbClicking.setChecked(True)
+
+            # elif event.key() == Qt.Key_C:
+            #     self.toolbar.home()
             
             
         
@@ -125,7 +136,7 @@ class Window(QtGui.QDialog):
             if self.bDrawStripe:
                 self.bDrawStripe = False
             elif self.cbClicking.isChecked():
-                self.plotIdx(self.idx)
+                self.plotIdx()
                 
 
             # x,y = self.clickRepeat()
@@ -242,9 +253,10 @@ class Window(QtGui.QDialog):
         except AttributeError:
             return
 
-    def plotIdx(self, idx):
+
+    def plotIdx(self):
         try:     
-            filename = str(self.listFile.item(idx).text())
+            filename = str(self.listFile.item(self.idx).text())
             self.plot(filename)
         except AttributeError:
             return
@@ -264,25 +276,28 @@ class Window(QtGui.QDialog):
         savefolder = str(self.tbSaveFolder.toPlainText())
         filename, ext = os.path.splitext(str(self.listFile.item(self.idx).text()))
         savefile_txt = os.path.join(savefolder, filename + '.txt')
-        numPoint = int(self.tbNum.text())
-        if os.path.isfile(savefile_txt):
-            points = np.loadtxt(savefile_txt, dtype='int')
-            if len(points.shape) == 1:
-                points = points.reshape(1,-1)
-            points = points[points[:,0] != numPoint,:]
-            np.savetxt(savefile_txt, points, fmt=str('%i'))
-        self.plotIdx(self.idx)
-        
+        try:
+            numPoint = int(self.tbNum.text())
+            if os.path.isfile(savefile_txt):
+                points = np.loadtxt(savefile_txt, dtype='int')
+                if len(points.shape) == 1:
+                    points = points.reshape(1,-1)
+                points = points[points[:,0] != numPoint,:]
+                np.savetxt(savefile_txt, points, fmt=str('%i'))
+            self.plotIdx()
+        except ValueError:
+            return
+
     def goForward(self):
         self.idx += 1
         self.idx %= self.listFile.count() 
-        self.plotIdx(self.idx)
+        self.plotIdx()
         self.setNumFile()
 
     def goBackward(self):
         self.idx -= 1
         self.idx %= self.listFile.count() 
-        self.plotIdx(self.idx)
+        self.plotIdx()
         self.setNumFile()
 
 
@@ -341,10 +356,10 @@ class Window(QtGui.QDialog):
         self.cbKeepEditing = QtGui.QCheckBox("Keep img")
         
         self.cbDrawPoints = QtGui.QCheckBox("Scatter points")
-        self.cbDrawPoints.stateChanged.connect(self.plotFirstInList)
+        self.cbDrawPoints.stateChanged.connect(self.plotIdx)
 
         self.cbDrawNums = QtGui.QCheckBox("show nums")
-        self.cbDrawNums.stateChanged.connect(self.plotFirstInList)
+        self.cbDrawNums.stateChanged.connect(self.plotIdx)
 
         self.cbHistEqual = QtGui.QCheckBox("Hist Equalize")
         self.cbHistEqual.stateChanged.connect(lambda:self.evCheckBox(self.cbHistEqual))
@@ -433,8 +448,6 @@ if __name__ == '__main__':
     main.show()
 
     sys.exit(app.exec_())
-
-
 
 
 
